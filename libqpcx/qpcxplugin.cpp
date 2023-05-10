@@ -48,7 +48,7 @@ QImageIOPlugin::Capabilities QPcxPlugin::capabilities(
         return Capabilities(CanRead|CanReadIncremental);
 
     if (!(format.isEmpty() && device->isOpen()))
-        return 0;
+        return {};
 
     Capabilities cap;
     if (device->isReadable() && QPcxHandler::canRead(device))
