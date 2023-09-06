@@ -11,9 +11,10 @@ PROJECT(imageformats)
 
 OPTION (ENABLE_PSD "Enable PSD Plugin" ON)
 OPTION (ENABLE_PCX "Enable PCX Plugin" ON)
+OPTION (ENABLE_QOI "Enable QOI Plugin" OFF)
 
 # not supported yet
-OPTION (ENABLE_FLIF "Enable FLIF Plugin" OFF)
+#OPTION (ENABLE_FLIF "Enable FLIF Plugin" OFF)
 
 # NMC_PREPARE_PLUGIN()
 # NMC_FINDQT()
@@ -29,9 +30,13 @@ IF (ENABLE_PCX)
     add_subdirectory(libqpcx)
 ENDIF(ENABLE_PCX)
 
-IF (ENABLE_FLIF)
-    add_subdirectory(qt-flif-plugin)
-ENDIF(ENABLE_FLIF)
+IF (ENABLE_QOI)
+    add_subdirectory(libqqoi)
+ENDIF(ENABLE_QOI)
+
+#IF (ENABLE_FLIF)
+#    add_subdirectory(qt-flif-plugin)
+#ENDIF(ENABLE_FLIF)
 
 # status
 MESSAGE(STATUS "")
@@ -49,6 +54,12 @@ IF(ENABLE_PCX)
     MESSAGE(STATUS " with PCX .................. YES")
 ELSE()
     MESSAGE(STATUS " with PCX .................. NO")
+ENDIF()
+
+IF(ENABLE_QOI)
+    MESSAGE(STATUS " with QOI .................. YES")
+ELSE()
+    MESSAGE(STATUS " with QOI .................. NO")
 ENDIF()
 
 # IF(ENABLE_FLIF)
