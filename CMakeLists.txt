@@ -12,6 +12,7 @@ PROJECT(imageformats)
 OPTION (ENABLE_PSD "Enable PSD Plugin" ON)
 OPTION (ENABLE_PCX "Enable PCX Plugin" ON)
 OPTION (ENABLE_QOI "Enable QOI Plugin" OFF)
+OPTION (ENABLE_WEBP "Enable WEBP Plugin (custom build)" OFF)
 
 # not supported yet
 #OPTION (ENABLE_FLIF "Enable FLIF Plugin" OFF)
@@ -33,6 +34,10 @@ ENDIF(ENABLE_PCX)
 IF (ENABLE_QOI)
     add_subdirectory(libqqoi)
 ENDIF(ENABLE_QOI)
+
+IF (ENABLE_WEBP)
+    add_subdirectory(webp)
+ENDIF(ENABLE_WEBP)
 
 #IF (ENABLE_FLIF)
 #    add_subdirectory(qt-flif-plugin)
@@ -60,6 +65,12 @@ IF(ENABLE_QOI)
     MESSAGE(STATUS " with QOI .................. YES")
 ELSE()
     MESSAGE(STATUS " with QOI .................. NO")
+ENDIF()
+
+IF(ENABLE_WEBP)
+    MESSAGE(STATUS " with custom WEBP .......... YES")
+ELSE()
+    MESSAGE(STATUS " with custom WEBP .......... NO")
 ENDIF()
 
 # IF(ENABLE_FLIF)
