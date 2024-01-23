@@ -1,6 +1,6 @@
 #include "windows.h"
 
-#define VER_FILEVERSION             5,12,2,1
+#define VER_FILEVERSION             5,15,2,1
 #define VER_FILEVERSION_STR         "5.15.2.1\0"
 
 VS_VERSION_INFO VERSIONINFO
@@ -15,6 +15,7 @@ BEGIN
       VALUE "FileDescription", "WebP Qt plug-in for nomacs"
       VALUE "FileVersion", VER_FILEVERSION_STR
       VALUE "InternalName", "qwebp.dll"
+      VALUE "LegalCopyright", "GPL-3.0-or-later"
       VALUE "OriginalFilename", "qwebp.dll"
       VALUE "ProductName", "nomacs - Image Lounge"
       VALUE "ProductVersion", VER_FILEVERSION_STR
