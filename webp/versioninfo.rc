@@ -1,0 +1,29 @@
+#include "windows.h"
+
+#define VER_FILEVERSION             5,12,2,1
+#define VER_FILEVERSION_STR         "5.15.2.1\0"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION VER_FILEVERSION
+PRODUCTVERSION VER_FILEVERSION
+FILETYPE VFT_DLL
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904E4"
+    BEGIN
+      VALUE "FileDescription", "WebP Qt plug-in for nomacs"
+      VALUE "FileVersion", VER_FILEVERSION_STR
+      VALUE "InternalName", "qwebp.dll"
+      VALUE "OriginalFilename", "qwebp.dll"
+      VALUE "ProductName", "nomacs - Image Lounge"
+      VALUE "ProductVersion", VER_FILEVERSION_STR
+    END
+  END
+  /* For some reason the ProductVersion would not appear unless I add */
+  /* the following section: VarFileInfo */
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1252
+  END
+END
