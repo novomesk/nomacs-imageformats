@@ -5,7 +5,7 @@ project(qpsd)
 # load paths from the user file if exists
 if (EXISTS ${CMAKE_SOURCE_DIR}/CMakeUserPaths.cmake)
   include(${CMAKE_SOURCE_DIR}/CMakeUserPaths.cmake)
-		
+
 	message(STATUS "using user paths...")
 elseif(MSVC)
 	message(WARNING "Could not find CMakeUserPaths.cmake - please use this file to specify your install directories (see CMakeUserPathsGit.cmake)")
@@ -38,7 +38,7 @@ file(GLOB LIBQPSD_HEADERS "*.h")
 SET(CMAKE_DEBUG_POSTFIX "d")
 
 add_library(${PROJECT_NAME} MODULE ${LIBQPSD_SOURCES} ${LIBQPSD_HEADERS})
-target_link_libraries(${PROJECT_NAME}
+target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Gui
 )
@@ -61,12 +61,12 @@ if (QT_PLUGINS_DIR)
   message(STATUS "")
   message(STATUS "-----------------------------------------------------------------------------")
   message(STATUS " ${PROJECT_NAME} configured")
-  message(STATUS " <https://github.com/Code-ReaQtor/libqpsd>")
+  message(STATUS " https://github.com/roniemartinez/libqpsd")
   message(STATUS " it will be installed to ${QT_PLUGINS_DIR}/imageformats")
   message(STATUS "-----------------------------------------------------------------------------")
-  
+
 else ()
-  message(FATAL_ERROR "Qt5 plugin directory cannot be detected.")
+  message(FATAL_ERROR "Qt plugin directory cannot be detected.")
 endif ()
 
 # Prefix with DESTDIR if available to allow packaging
