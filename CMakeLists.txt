@@ -13,6 +13,7 @@ OPTION (ENABLE_PSD "Enable PSD Plugin" ON)
 OPTION (ENABLE_PCX "Enable PCX Plugin" ON)
 OPTION (ENABLE_QOI "Enable QOI Plugin" OFF)
 OPTION (ENABLE_WEBP "Enable WEBP Plugin (custom build)" OFF)
+OPTION (ENABLE_DDS "Enable DDS Plugin (Qt6 only)" OFF)
 
 # not supported yet
 #OPTION (ENABLE_FLIF "Enable FLIF Plugin" OFF)
@@ -38,6 +39,10 @@ ENDIF(ENABLE_QOI)
 IF (ENABLE_WEBP)
     add_subdirectory(webp)
 ENDIF(ENABLE_WEBP)
+
+IF (ENABLE_DDS)
+    add_subdirectory(dds)
+ENDIF(ENABLE_DDS)
 
 #IF (ENABLE_FLIF)
 #    add_subdirectory(qt-flif-plugin)
@@ -71,6 +76,12 @@ IF(ENABLE_WEBP)
     MESSAGE(STATUS " with custom WEBP .......... YES")
 ELSE()
     MESSAGE(STATUS " with custom WEBP .......... NO")
+ENDIF()
+
+IF(ENABLE_DDS)
+    MESSAGE(STATUS " with DDS .................. YES")
+ELSE()
+    MESSAGE(STATUS " with DDS .................. NO")
 ENDIF()
 
 # IF(ENABLE_FLIF)
