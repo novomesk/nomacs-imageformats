@@ -14,6 +14,23 @@
 #include <QFile>
 #include <QIODevice>
 #include <QImage>
+#include <QLoggingCategory>
+
+#ifdef QT_DEBUG
+Q_LOGGING_CATEGORY(LOG_QOIPLUGIN, "kf.imageformats.plugins.qoi", QtDebugMsg)
+#else
+Q_LOGGING_CATEGORY(LOG_QOIPLUGIN, "kf.imageformats.plugins.qoi", QtWarningMsg)
+#endif
+
+/* *** QOI_MAX_IMAGE_WIDTH and QOI_MAX_IMAGE_HEIGHT ***
+ * The maximum size in pixel allowed by the plugin.
+ */
+#ifndef QOI_MAX_IMAGE_WIDTH
+#define QOI_MAX_IMAGE_WIDTH KIF_LARGE_IMAGE_PIXEL_LIMIT
+#endif
+#ifndef QOI_MAX_IMAGE_HEIGHT
+#define QOI_MAX_IMAGE_HEIGHT QOI_MAX_IMAGE_WIDTH
+#endif
 
 namespace // Private
 {
@@ -31,6 +48,18 @@ namespace // Private
 #define QOI_END_STREAM_PAD 8
 
 struct QoiHeader {
+    QoiHeader()
+        : MagicNumber(0)
+        , Width(0)
+        , Height(0)
+        , Channels(0)
+        , Colorspace(2)
+    {
+    }
+
+    QoiHeader(const QoiHeader&) = default;
+    QoiHeader& operator=(const QoiHeader&) = default;
+
     quint32 MagicNumber;
     quint32 Width;
     quint32 Height;
@@ -80,7 +109,7 @@ static bool IsSupported(const QoiHeader &head)
         return false;
     }
     // Set a reasonable upper limit
-    if (head.Width > 300000 || head.Height > 300000) {
+    if (head.Width > QOI_MAX_IMAGE_WIDTH || head.Height > QOI_MAX_IMAGE_HEIGHT) {
         return false;
     }
     return true;
@@ -131,7 +160,7 @@ static bool LoadQOI(QIODevice *device, const QoiHeader &qoi, QImage &img)
     // Handle the byte stream
     QByteArray ba;
     for (quint32 y = 0, run = 0; y < qoi.Height; ++y) {
-        if (quint64(ba.size()) < px_len) {
+        if (quint64(ba.size()) < px_len && !device->atEnd()) {
             ba.append(device->read(px_len));
         }
 
@@ -297,7 +326,19 @@ static bool SaveQOI(QIODevice *device, const QoiHeader &qoi, const QImage &img)
 
 } // namespace
 
+class QOIHandlerPrivate
+{
+public:
+    QOIHandlerPrivate() {}
+    ~QOIHandlerPrivate() {}
+
+    QoiHeader m_header;
+};
+
+
 QOIHandler::QOIHandler()
+    : QImageIOHandler()
+    , d(new QOIHandlerPrivate)
 {
 }
 
@@ -313,22 +354,18 @@ bool QOIHandler::canRead() const
 bool QOIHandler::canRead(QIODevice *device)
 {
     if (!device) {
-        qWarning("QOIHandler::canRead() called with no device");
+        qCWarning(LOG_QOIPLUGIN) << "QOIHandler::canRead() called with no device";
         return false;
     }
 
-    device->startTransaction();
-    QByteArray head = device->read(QOI_HEADER_SIZE);
-    qsizetype readBytes = head.size();
-    device->rollbackTransaction();
-
-    if (readBytes < QOI_HEADER_SIZE) {
+    auto head = device->peek(QOI_HEADER_SIZE);
+    if (head.size() < QOI_HEADER_SIZE) {
         return false;
     }
 
     QDataStream stream(head);
     stream.setByteOrder(QDataStream::BigEndian);
-    QoiHeader qoi = {0, 0, 0, 0, 2};
+    QoiHeader qoi;
     stream >> qoi;
 
     return IsSupported(qoi);
@@ -340,7 +377,7 @@ bool QOIHandler::read(QImage *image)
     s.setByteOrder(QDataStream::BigEndian);
 
     // Read image header
-    QoiHeader qoi = {0, 0, 0, 0, 2};
+    auto&& qoi = d->m_header;
     s >> qoi;
 
     // Check if file is supported
@@ -402,18 +439,13 @@ QVariant QOIHandler::option(ImageOption option) const
     QVariant v;
 
     if (option == QImageIOHandler::Size) {
-        if (auto d = device()) {
-            // transactions works on both random and sequential devices
-            d->startTransaction();
-            auto ba = d->read(sizeof(QoiHeader));
-            d->rollbackTransaction();
-
-            QDataStream s(ba);
+        auto&& header = d->m_header;
+        if (IsSupported(header)) {
+            v = QVariant::fromValue(QSize(header.Width, header.Height));
+        } else if (auto d = device()) {
+            QDataStream s(d->peek(sizeof(QoiHeader)));
             s.setByteOrder(QDataStream::BigEndian);
-
-            QoiHeader header = {0, 0, 0, 0, 2};
             s >> header;
-
             if (s.status() == QDataStream::Ok && IsSupported(header)) {
                 v = QVariant::fromValue(QSize(header.Width, header.Height));
             }
@@ -421,18 +453,13 @@ QVariant QOIHandler::option(ImageOption option) const
     }
 
     if (option == QImageIOHandler::ImageFormat) {
-        if (auto d = device()) {
-            // transactions works on both random and sequential devices
-            d->startTransaction();
-            auto ba = d->read(sizeof(QoiHeader));
-            d->rollbackTransaction();
-
-            QDataStream s(ba);
+        auto&& header = d->m_header;
+        if (IsSupported(header)) {
+            v = QVariant::fromValue(imageFormat(header));
+        } else if (auto d = device()) {
+            QDataStream s(d->peek(sizeof(QoiHeader)));
             s.setByteOrder(QDataStream::BigEndian);
-
-            QoiHeader header = {0, 0, 0, 0, 2};
             s >> header;
-
             if (s.status() == QDataStream::Ok && IsSupported(header)) {
                 v = QVariant::fromValue(imageFormat(header));
             }

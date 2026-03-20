@@ -15,13 +15,15 @@ ScanLineConverter::ScanLineConverter(const QImage::Format &targetFormat)
 ScanLineConverter::ScanLineConverter(const ScanLineConverter &other)
     : _targetFormat(other._targetFormat)
     , _colorSpace(other._colorSpace)
+    , _defaultColorSpace(other._defaultColorSpace)
 {
 }
 
 ScanLineConverter &ScanLineConverter::operator=(const ScanLineConverter &other)
 {
-    this->_targetFormat = other._targetFormat;
-    this->_colorSpace = other._colorSpace;
+    _targetFormat = other._targetFormat;
+    _colorSpace = other._colorSpace;
+    _defaultColorSpace = other._defaultColorSpace;
     return (*this);
 }
 
@@ -40,24 +42,54 @@ QColorSpace ScanLineConverter::targetColorSpace() const
     return _colorSpace;
 }
 
+void ScanLineConverter::setDefaultSourceColorSpace(const QColorSpace &colorSpace)
+{
+    _defaultColorSpace = colorSpace;
+}
+
+QColorSpace ScanLineConverter::defaultSourceColorSpace() const
+{
+    return _defaultColorSpace;
+}
+
 const uchar *ScanLineConverter::convertedScanLine(const QImage &image, qint32 y)
 {
-    auto colorSpaceConversion = isColorSpaceConversionNeeded(image, _colorSpace);
+    auto colorSpaceConversion = isColorSpaceConversionNeeded(image);
     if (image.format() == _targetFormat && !colorSpaceConversion) {
         return image.constScanLine(y);
     }
     if (image.width() != _tmpBuffer.width() || image.format() != _tmpBuffer.format()) {
         _tmpBuffer = QImage(image.width(), 1, image.format());
+        _tmpBuffer.setColorTable(image.colorTable());
     }
     if (_tmpBuffer.isNull()) {
         return nullptr;
     }
     std::memcpy(_tmpBuffer.bits(), image.constScanLine(y), std::min(_tmpBuffer.bytesPerLine(), image.bytesPerLine()));
+    auto tmp = _tmpBuffer;
     if (colorSpaceConversion) {
-        _tmpBuffer.setColorSpace(image.colorSpace());
-        _tmpBuffer.convertToColorSpace(_colorSpace);
+        auto cs = image.colorSpace();
+        if (!cs.isValid()) {
+            cs = _defaultColorSpace;
+        }
+        if (tmp.depth() < 8 && cs.colorModel() == QColorSpace::ColorModel::Gray) {
+            tmp.convertTo(QImage::Format_Grayscale8);
+        }
+        else if (tmp.depth() < 24 && cs.colorModel() == QColorSpace::ColorModel::Rgb) {
+            tmp.convertTo(tmp.hasAlphaChannel() ? QImage::Format_ARGB32 : QImage::Format_RGB32);
+        }
+        tmp.setColorSpace(cs);
+        tmp.convertToColorSpace(_colorSpace);
     }
-    _convBuffer = _tmpBuffer.convertToFormat(_targetFormat);
+
+    /*
+     * Work Around for wrong RGBA64 -> 16FPx4/32FPx4 conversion on Intel architecture.
+     * Luckily convertTo() works fine with 16FPx4 images so I can use it instead convertToFormat().
+     * See also: https://bugreports.qt.io/browse/QTBUG-120614
+     */
+    tmp.convertTo(_targetFormat);
+    _convBuffer = tmp;
+
     if (_convBuffer.isNull()) {
         return nullptr;
     }
@@ -72,12 +104,12 @@ qsizetype ScanLineConverter::bytesPerLine() const
     return _convBuffer.bytesPerLine();
 }
 
-bool ScanLineConverter::isColorSpaceConversionNeeded(const QImage &image, const QColorSpace &targetColorSpace) const
+bool ScanLineConverter::isColorSpaceConversionNeeded(const QImage &image, const QColorSpace &targetColorSpace, const QColorSpace &defaultColorSpace)
 {
-    if (image.depth() < 24) { // RGB 8 bit or grater only
-        return false;
-    }
     auto sourceColorSpace = image.colorSpace();
+    if (!sourceColorSpace.isValid()) {
+        sourceColorSpace = defaultColorSpace;
+    }
     if (!sourceColorSpace.isValid() || !targetColorSpace.isValid()) {
         return false;
     }
